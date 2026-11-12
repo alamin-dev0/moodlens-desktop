@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MoodLens AI – Facial Expression Analysis</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👁️</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#07060f;--p:#a855f7;--c:#22d3ee;--tx:#e8e6f5;--mu:#8b88a6;--gl:rgba(255,255,255,.045);--bd:rgba(255,255,255,.09);--ok:#4ade80;--er:#f87171;--wa:#facc15}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:radial-gradient(900px 500px at 85% -10%,#a855f726,transparent),radial-gradient(700px 500px at -5% 105%,#22d3ee1c,transparent),var(--bg);color:var(--tx);font:15px/1.5 'Space Grotesk',system-ui,sans-serif;display:flex}
+button,select,input{font:inherit;color:inherit}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+aside{width:224px;flex:none;padding:20px 14px;border-right:1px solid var(--bd);background:#0a0816cc;backdrop-filter:blur(18px);display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;padding:4px 8px 18px}
+.logo i{width:30px;height:30px;border-radius:9px;background:conic-gradient(from 200deg,var(--p),var(--c),var(--p));display:grid;place-items:center;font-style:normal;box-shadow:0 0 22px #a855f766}
+.logo i:after{content:"";width:12px;height:12px;border-radius:50%;background:#07060f;box-shadow:0 0 0 3px #ffffff40}
+nav button{display:flex;gap:11px;align-items:center;width:100%;background:none;border:1px solid transparent;border-radius:11px;padding:10px 12px;cursor:pointer;color:var(--mu);transition:.2s;text-align:left}
+nav button:hover{color:var(--tx);background:var(--gl)}
+nav button.on{color:#fff;background:linear-gradient(90deg,#a855f733,#22d3ee14);border-color:#a855f755}
+nav .bdg{margin-left:auto;background:var(--er);color:#fff;border-radius:9px;font-size:11px;padding:0 6px;display:none}
+.side-foot{margin-top:auto;font-size:12px;color:var(--mu);padding:8px}
+main{flex:1;min-width:0;padding:22px;overflow-x:hidden}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:24px;font-weight:700;letter-spacing:-.01em}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:4px 11px;border-radius:99px;font-size:12.5px;border:1px solid var(--bd);background:var(--gl);color:var(--mu)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mu)}.dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}.dot.er{background:var(--er)}.dot.wa{background:var(--wa)}
+.note{background:#22d3ee10;border:1px solid #22d3ee33;border-radius:12px;padding:9px 14px;font-size:13px;color:#b9e9f2;margin-bottom:16px}
+.card{background:var(--gl);border:1px solid var(--bd);border-radius:18px;padding:18px;backdrop-filter:blur(16px);box-shadow:0 10px 40px #0006}
+.card h2{font-size:15px;font-weight:500;color:var(--mu);margin-bottom:12px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+.grid{display:grid;gap:16px}
+.g-main{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.stats{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:16px}
+.stat b{display:block;font-size:26px;font-weight:700;background:linear-gradient(90deg,var(--c),var(--p));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat span{font-size:12.5px;color:var(--mu)}
+.view{display:none;animation:in .35s ease}.view.on{display:block}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.stage{position:relative;width:100%;aspect-ratio:4/3;background:#04030a;border-radius:14px;overflow:hidden;border:1px solid var(--bd)}
+.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+.stage video.mir{transform:scaleX(-1)}
+.ph{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:10px;color:var(--mu);padding:20px}
+.ph .ring{width:84px;height:84px;margin:auto;border-radius:50%;border:2px dashed #a855f788;animation:spin 12s linear infinite;display:grid;place-items:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--c),transparent);top:0;animation:scan 3s ease-in-out infinite;display:none;opacity:.5}
+.stage.live .scan{display:block}
+@keyframes scan{50%{top:calc(100% - 2px)}}
+.btns{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}
+.btn{border:1px solid var(--bd);background:var(--gl);border-radius:11px;padding:9px 16px;cursor:pointer;transition:.2s;font-weight:500}
+.btn:hover{border-color:#a855f799;transform:translateY(-1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn.pri{background:linear-gradient(120deg,var(--p),#6d5bf7 60%,var(--c));border:0;color:#fff;box-shadow:0 6px 24px #a855f755}
+.btn.dan{border-color:#f8717166;color:#fca5a5}
+.big{font-size:34px;font-weight:700;line-height:1.1;transition:color .3s}
+.bar{display:grid;grid-template-columns:118px 1fr 46px;gap:8px;align-items:center;font-size:13px;margin:7px 0}
+.bar .t{height:8px;background:#ffffff0f;border-radius:9px;overflow:hidden}
+.bar .f{height:100%;width:0;border-radius:9px;transition:width .25s}
+.bar em{font-style:normal;text-align:right;color:var(--mu)}
+.faces{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.chart{position:relative;height:280px}
+.list{max-height:420px;overflow:auto;font-size:13.5px}
+.row{display:grid;grid-template-columns:78px 1fr 60px 60px;gap:8px;padding:8px 6px;border-bottom:1px solid var(--bd)}
+.cons{background:#04030a;border:1px solid var(--bd);border-radius:12px;height:300px;overflow:auto;padding:10px;font-size:12px}
+.cons div{padding:2px 0;white-space:pre-wrap;word-break:break-word}
+.l-error{color:var(--er)}.l-warn{color:var(--wa)}.l-info{color:#b9e9f2}.l-ok{color:var(--ok)}
+.set{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid var(--bd);font-size:14px}
+.set small{display:block;color:var(--mu);font-size:12px}
+select,input[type=number]{background:#120f24;border:1px solid var(--bd);border-radius:9px;padding:6px 9px}
+input[type=range]{accent-color:var(--p);width:150px}
+input[type=checkbox]{accent-color:var(--p);width:20px;height:20px}
+.test li{list-style:none;padding:5px 0;font-size:13.5px;display:flex;gap:9px}
+#load{position:fixed;inset:0;background:var(--bg);z-index:99;display:grid;place-content:center;text-align:center;gap:18px;transition:opacity .6s}
+#load .orb{width:76px;height:76px;margin:auto;border-radius:50%;background:conic-gradient(var(--p),var(--c),var(--p));animation:spin 1.4s linear infinite;-webkit-mask:radial-gradient(circle 28px,transparent 96%,#000 100%);mask:radial-gradient(circle 28px,transparent 96%,#000 100%)}
+#toasts{position:fixed;right:16px;bottom:16px;display:grid;gap:9px;z-index:90;max-width:min(360px,calc(100vw - 32px))}
+.toast{background:#15112aee;border:1px solid var(--bd);border-left:3px solid var(--c);border-radius:12px;padding:11px 14px;font-size:13.5px;backdrop-filter:blur(14px);animation:in .3s}
+.toast.error{border-left-color:var(--er)}.toast.ok{border-left-color:var(--ok)}
+.modal{position:fixed;inset:0;background:#000b;z-index:95;display:none;place-items:center;padding:20px}.modal.on{display:grid}
+.modal .card{max-width:480px;background:#110e22}
+.modal ul{margin:10px 0 16px 18px;color:var(--mu);font-size:14px}
+@media(max-width:1000px){.g-main,.g-2{grid-template-columns:1fr}}
+@media(max-width:760px){
+body{flex-direction:column}
+aside{position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;height:auto;flex-direction:row;padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:60;border-right:0;border-top:1px solid var(--bd)}
+.logo,.side-foot{display:none}
+nav{display:flex;width:100%;gap:2px}
+nav button{flex-direction:column;gap:2px;padding:7px 2px;font-size:11px;justify-content:center;text-align:center}
+main{padding:14px 14px calc(88px + env(safe-area-inset-bottom))}
+.bar{grid-template-columns:96px 1fr 40px}.big{font-size:28px}
+.row{grid-template-columns:62px 1fr 48px 40px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:2px solid var(--c);outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="load"><div class="orb"></div><div><b style="font-size:22px">MoodLens AI</b><div id="loadmsg" class="mono" style="color:var(--mu);font-size:13px;margin-top:6px">Starting…</div></div></div>
+<div id="toasts" aria-live="polite"></div>
+
+<div class="modal" id="consent"><div class="card" role="dialog" aria-label="Camera privacy">
+<h2 style="font-size:18px;color:var(--tx)">Before you turn on the camera</h2>
+<ul><li>Video frames are analysed <b>inside your browser</b>. No image or video is uploaded or saved.</li>
+<li>Only numbers (mood scores and timestamps) are kept, in memory — or in this browser's storage if you enable it in Settings.</li>
+<li>Results describe <b>facial expressions</b>, not what you actually feel.</li></ul>
+<div class="btns"><button class="btn pri" id="agree">Allow camera access</button><button class="btn" id="decline">Not now</button></div></div></div>
+
+<aside>
+<div class="logo"><i></i>MoodLens AI</div>
+<nav id="nav">
+<button data-v="live" class="on">◉ <span>Live</span></button>
+<button data-v="analytics">▤ <span>Analytics</span></button>
+<button data-v="history">≡ <span>History</span></button>
+<button data-v="diag">✚ <span>Diagnostics</span><b class="bdg" id="errbdg">0</b></button>
+<button data-v="settings">⚙ <span>Settings</span></button>
+<button data-v="privacy">⛨ <span>Privacy</span></button>
+</nav>
+<div class="side-foot">Runs locally in your browser.<br>MediaPipe Face Landmarker</div>
+</aside>
+
+<main>
+<div class="top"><h1 id="title">Live analysis</h1>
+<span class="pill"><i class="dot" id="dCam"></i><span id="tCam">Camera off</span></span>
+<span class="pill"><i class="dot" id="dMod"></i><span id="tMod">Model loading</span></span>
+<span class="pill mono" id="tSes">Session 00:00</span></div>
+<div class="note">MoodLens reads <b>facial expressions</b> (movement of brows, eyes, mouth) and maps them to mood labels. An expression is not an emotional state: people smile when they're upset and look neutral when they're excited. Treat results as an estimate of how a face looks.</div>
+
+<!-- LIVE -->
+<section class="view on" id="v-live">
+<div class="grid g-main">
+<div class="card"><h2>Camera <span class="mono" id="resTxt"></span></h2>
+<div class="stage" id="stage"><video id="vid" playsinline muted></video><canvas id="cv"></canvas><div class="scan"></div>
+<div class="ph" id="ph"><div class="ring">◉</div><div>Camera is off</div><div style="font-size:13px">Press Start camera to begin. Nothing leaves your device.</div></div></div>
+<div class="btns"><button class="btn pri" id="bStart">Start camera</button><button class="btn" id="bStop" disabled>Stop</button><button class="btn" id="bSwitch" disabled>Switch camera</button></div></div>
+<div class="card"><h2>Detected mood <span class="pill" id="faceN">0 faces</span></h2>
+<div class="big" id="mood" style="color:var(--mu)">Waiting for a face</div>
+<div id="conf" class="mono" style="color:var(--mu);font-size:13px;margin-bottom:10px">Expression-based estimate</div>
+<div id="bars"></div><div class="faces" id="faces"></div></div></div>
+<div class="grid stats">
+<div class="card stat"><b id="sDet">0</b><span>Face detections</span></div>
+<div class="card stat"><b id="sFrm">0</b><span>Frames with a face</span></div>
+<div class="card stat"><b id="sPeak">0</b><span>Most faces at once</span></div>
+<div class="card stat"><b id="sFps">0</b><span>FPS</span></div>
+<div class="card stat"><b id="sLat">0</b><span>Inference ms</span></div>
+<div class="card stat"><b id="sDom">–</b><span>Top mood this session</span></div></div>
+</section>
+
+<!-- ANALYTICS -->
+<section class="view" id="v-analytics"><div class="grid g-2">
+<div class="card"><h2>Mood distribution (this session)</h2><div class="chart"><canvas id="chDist"></canvas></div></div>
+<div class="card"><h2>Average expression strength</h2><div id="avgBars"></div></div>
+<div class="card" style="grid-column:1/-1"><h2>Mood timeline, first face (last 60 samples)</h2><div class="chart"><canvas id="chLine"></canvas></div></div></div></section>
+
+<!-- HISTORY -->
+<section class="view" id="v-history"><div class="card"><h2>Mood history <span class="btns" style="margin:0"><button class="btn" id="bCsv">Export CSV</button><button class="btn dan" id="bClrH">Clear history</button></span></h2>
+<div class="list mono" id="hist"><div style="color:var(--mu);padding:14px">No samples yet. Start the camera to record the timeline.</div></div></div></section>
+
+<!-- DIAGNOSTICS -->
+<section class="view" id="v-diag"><div class="grid g-2">
+<div class="card"><h2>Camera test</h2><ul class="test" id="camTest"></ul><div class="btns"><button class="btn pri" id="bCamT">Run camera test</button></div></div>
+<div class="card"><h2>AI model test</h2><ul class="test" id="modTest"></ul><div class="btns"><button class="btn pri" id="bModT">Run model test</button><button class="btn" id="bReload">Reload model</button></div></div>
+<div class="card"><h2>Performance <span class="mono" id="perfTxt"></span></h2><div class="chart" style="height:200px"><canvas id="chFps"></canvas></div></div>
+<div class="card"><h2>Debug console <span class="btns" style="margin:0"><button class="btn" id="bCopy">Copy</button><button class="btn" id="bClrC">Clear</button></span></h2><div class="cons mono" id="cons"></div></div></div></section>
+
+<!-- SETTINGS -->
+<section class="view" id="v-settings"><div class="card" style="max-width:720px"><div id="setBox"></div>
+<div class="btns"><button class="btn dan" id="bReset">Reset session</button><button class="btn dan" id="bFactory">Factory reset</button></div></div></section>
+
+<!-- PRIVACY -->
+<section class="view" id="v-privacy"><div class="card" style="max-width:720px"><h2>Camera permission and privacy</h2>
+<p>Camera permission: <b id="permTxt">unknown</b></p>
+<ul style="margin:12px 0 12px 18px;color:var(--mu);font-size:14px"><li>All analysis runs in your browser with WebAssembly/WebGL. Frames are never uploaded, recorded or stored.</li>
+<li>Only the model files and libraries are downloaded from public CDNs on load.</li>
+<li>History holds scores and timestamps only, and stays in memory unless you turn on “Remember history” in Settings.</li>
+<li>To remove camera access entirely, use your browser's site-permission controls (the lock icon in the address bar).</li></ul>
+<div class="btns"><button class="btn" id="bRevoke">Stop camera and withdraw consent</button><button class="btn dan" id="bWipe">Delete all stored data</button></div></div></section>
+</main>
+
+<script type="module">
+import {FaceLandmarker,FilesetResolver,DrawingUtils} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const WASM="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
+const MODEL="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+const M=[['happy','Happy','#facc15'],['sad','Sad','#60a5fa'],['angry','Angry','#f87171'],['neutral','Neutral','#a5a3c2'],['surprised','Surprised','#f472b6'],['fearful','Fearful-looking','#a78bfa'],['disgusted','Disgusted-looking','#4ade80'],['tired','Tired-looking','#fb923c']];
+const LBL=Object.fromEntries(M.map(m=>[m[0],m[1]])),COL=Object.fromEntries(M.map(m=>[m[0],m[2]]));
+const DEF={faces:3,overlay:'mesh',mirror:true,smooth:.6,sens:1,fps:30,interval:1,persist:false,accent:'purple'};
+const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){log('warn','Storage unavailable: '+e.message)}};
+let S={...DEF,...ld('ml_set',{})};
+let hist=S.persist?ld('ml_hist',[]):[];
+/* ---------- logging / toasts ---------- */
+let errCount=0,logs=[];
+function log(l,m){const t=new Date().toLocaleTimeString();logs.push(`[${t}] ${l.toUpperCase()} ${m}`);if(logs.length>300)logs.shift();
+ const d=document.createElement('div');d.className='l-'+l;d.textContent=logs[logs.length-1];const c=$('#cons');c.append(d);while(c.children.length>300)c.firstChild.remove();c.scrollTop=1e9;
+ if(l==='error'){errCount++;const b=$('#errbdg');b.style.display='inline';b.textContent=errCount}}
+function toast(m,t='info'){const d=document.createElement('div');d.className='toast '+t;d.textContent=m;$('#toasts').append(d);setTimeout(()=>d.remove(),5200)}
+const fail=(m,e)=>{log('error',m+(e?': '+(e.message||e):''));toast(m,'error')};
+addEventListener('error',e=>log('error','Uncaught: '+e.message));
+addEventListener('unhandledrejection',e=>log('error','Unhandled: '+(e.reason?.message||e.reason)));
+/* ---------- navigation ---------- */
+const TT={live:'Live analysis',analytics:'Analytics',history:'History',diag:'Diagnostics',settings:'Settings',privacy:'Privacy'};
+$$('#nav button').forEach(b=>b.onclick=()=>{$$('#nav button').forEach(x=>x.classList.toggle('on',x===b));$$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+b.dataset.v));$('#title').textContent=TT[b.dataset.v];
+ if(b.dataset.v==='privacy')checkPerm();setTimeout(()=>[chDist,chLine,chFps].forEach(c=>c.resize()),30)});
+/* ---------- UI scaffolding ---------- */
+$('#bars').innerHTML=M.map(m=>`<div class="bar"><span>${m[1]}</span><div class="t"><div class="f" id="b-${m[0]}" style="background:${m[2]}"></div></div><em id="p-${m[0]}">0%</em></div>`).join('');
+$('#avgBars').innerHTML=M.map(m=>`<div class="bar"><span>${m[1]}</span><div class="t"><div class="f" id="a-${m[0]}" style="background:${m[2]}"></div></div><em id="ap-${m[0]}">0%</em></div>`).join('');
+const SET=[['faces','Max faces tracked','range',[1,5,1]],['overlay','Tracking overlay','select',[['mesh','Full mesh'],['contour','Contours + irises'],['box','Boxes only'],['off','Off']]],['mirror','Mirror front camera','check'],['smooth','Smoothing','range',[0,.9,.05],'Higher is steadier but slower to react'],['sens','Expression sensitivity','range',[.5,2.5,.1],'Higher exaggerates non-neutral moods'],['fps','Target FPS','select',[[15,'15'],[30,'30'],[60,'60']]],['interval','Record history every','select',[[1,'1 s'],[2,'2 s'],[5,'5 s']]],['persist','Remember history in this browser','check','Stores scores only, never images'],['accent','Accent theme','select',[['purple','Purple'],['cyan','Cyan'],['pink','Pink']]]];
+$('#setBox').innerHTML=SET.map(([k,n,t,o,h])=>`<div class="set"><div>${n}${(h||(t==='check'&&o))?`<small>${h||o}</small>`:''}</div>${t==='range'?`<span class="mono"><input type="range" id="s-${k}" min="${o[0]}" max="${o[1]}" step="${o[2]}"> <span id="sv-${k}"></span></span>`:t==='select'?`<select id="s-${k}">${o.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select>`:`<input type="checkbox" id="s-${k}">`}</div>`).join('');
+const ACC={purple:['#a855f7','#22d3ee'],cyan:['#22d3ee','#a855f7'],pink:['#f472b6','#22d3ee']};
+function applySet(){SET.forEach(([k,,t])=>{const e=$('#s-'+k);t==='check'?e.checked=S[k]:e.value=S[k];if(t==='range')$('#sv-'+k).textContent=S[k]});
+ const a=ACC[S.accent];document.documentElement.style.setProperty('--p',a[0]);document.documentElement.style.setProperty('--c',a[1])}
+SET.forEach(([k,,t])=>$('#s-'+k).addEventListener('input',e=>{const el=e.target;let v=t==='check'?el.checked:t==='range'||k==='fps'||k==='interval'?+el.value:el.value;S[k]=v;if(t==='range')$('#sv-'+k).textContent=v;
+ sv('ml_set',S);applySet();if(k==='faces'&&lm)lm.setOptions({numFaces:v}).catch(x=>fail('Could not change face limit',x));
+ if(k==='persist'){v?sv('ml_hist',hist.slice(-500)):localStorage.removeItem('ml_hist');toast(v?'History will be remembered on this device':'Stored history removed')}}));
+applySet();
+/* ---------- charts ---------- */
+Chart.defaults.color='#8b88a6';Chart.defaults.borderColor='#ffffff12';Chart.defaults.font.family="'Space Grotesk',sans-serif";
+const cnt=Object.fromEntries(M.map(m=>[m[0],0])),sum=Object.fromEntries(M.map(m=>[m[0],0]));let nSamp=0;
+const chDist=new Chart($('#chDist'),{type:'doughnut',data:{labels:M.map(m=>m[1]),datasets:[{data:M.map(()=>0),backgroundColor:M.map(m=>m[2]),borderWidth:0}]},options:{maintainAspectRatio:false,cutout:'66%',plugins:{legend:{position:'right',labels:{boxWidth:10}}}}});
+const chLine=new Chart($('#chLine'),{type:'line',data:{labels:[],datasets:M.map(m=>({label:m[1],data:[],borderColor:m[2],backgroundColor:m[2],tension:.35,pointRadius:0,borderWidth:2}))},options:{maintainAspectRatio:false,animation:false,scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{ticks:{maxTicksLimit:8}}},plugins:{legend:{labels:{boxWidth:10}}}}});
+const chFps=new Chart($('#chFps'),{type:'line',data:{labels:[],datasets:[{label:'FPS',data:[],borderColor:'#22d3ee',fill:true,backgroundColor:'#22d3ee22',tension:.3,pointRadius:0},{label:'Inference ms',data:[],borderColor:'#a855f7',tension:.3,pointRadius:0}]},options:{maintainAspectRatio:false,animation:false,plugins:{legend:{labels:{boxWidth:10}}}}});
+/* ---------- expression scoring (from MediaPipe blendshapes) ---------- */
+const cl=x=>Math.max(0,Math.min(1,x));
+function score(b){const g=n=>b[n]||0,A=n=>(g(n+'Left')+g(n+'Right'))/2;
+ const sm=A('mouthSmile'),fr=A('mouthFrown'),bd=A('browDown'),sq=A('eyeSquint'),ew=A('eyeWide'),bl=A('eyeBlink'),sn=A('noseSneer'),pr=A('mouthPress'),st=A('mouthStretch'),up=A('mouthUpperUp'),jo=g('jawOpen'),bi=g('browInnerUp'),bo=A('browOuterUp'),ch=A('cheekSquint'),ld=A('eyeLookDown');
+ return{happy:cl(sm*1.4+ch*.3),sad:cl(fr*1.2+bi*.6*(1-ew)+g('mouthShrugLower')*.3-sm),angry:cl(bd*1.1+sq*.4+pr*.4+sn*.3-bi*.5),
+  surprised:cl(ew*.6+(bi+bo)*.5+jo*.6-bd),fearful:cl(ew*.5+bi*.6+st*.6-sm-bd*.5),disgusted:cl(sn*1.3+up*.6+g('mouthShrugUpper')*.3),
+  tired:cl(bl*.85+ld*.2+jo*bl*.8),neutral:.3}}
+function toPct(r){const s={};let t=0;for(const k in r){s[k]=k==='neutral'?r[k]:r[k]*S.sens;t+=s[k]}for(const k in s)s[k]=s[k]/t*100;return s}
+const top=p=>Object.keys(p).reduce((a,b)=>p[a]>=p[b]?a:b);
+/* ---------- model ---------- */
+let lm=null,modelOK=false;
+const setLoad=m=>$('#loadmsg').textContent=m;
+function modelState(t,c){$('#tMod').textContent=t;$('#dMod').className='dot '+c}
+async function initModel(){modelOK=false;lm=null;modelState('Model loading','wa');
+ try{setLoad('Loading MediaPipe runtime…');const fs=await FilesetResolver.forVisionTasks(WASM);
+  for(const del of['GPU','CPU']){try{setLoad(`Loading face model (${del})…`);
+   lm=await FaceLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:MODEL,delegate:del},runningMode:'VIDEO',numFaces:S.faces,outputFaceBlendshapes:true});
+   log('ok','Face Landmarker ready on '+del);modelState('Model ready · '+del,'ok');modelOK=true;return}catch(e){log('warn',del+' delegate failed: '+(e.message||e))}}
+  throw new Error('No delegate could start')
+ }catch(e){modelState('Model failed','er');fail('AI model failed to load. Check your connection, then use Diagnostics → Reload model',e)}}
+let lastTs=0;const detect=src=>{const t=Math.max(lastTs+1,performance.now());lastTs=t;return lm.detectForVideo(src,t)};
+/* ---------- camera ---------- */
+const vid=$('#vid'),cv=$('#cv'),ctx=cv.getContext('2d'),du=new DrawingUtils(ctx);
+let stream=null,running=false,mirrored=true,facing='user',devIdx=-1,devs=[],tStart=0,sesMs=0;
+const hasConsent=()=>ld('ml_consent',false);
+function askConsent(){return new Promise(r=>{if(hasConsent())return r(true);const m=$('#consent');m.classList.add('on');$('#agree').onclick=()=>{sv('ml_consent',true);m.classList.remove('on');r(true)};$('#decline').onclick=()=>{m.classList.remove('on');r(false)}})}
+function camUI(on){$('#bStart').disabled=on;$('#bStop').disabled=!on;$('#bSwitch').disabled=!on;$('#ph').style.display=on?'none':'grid';$('#stage').classList.toggle('live',on);$('#dCam').className='dot '+(on?'ok':'');$('#tCam').textContent=on?'Camera on':'Camera off'}
+async function startCam(deviceId){
+ if(!(await askConsent()))return;
+ if(!navigator.mediaDevices?.getUserMedia)return fail('This browser or page cannot use the camera. Open the site over HTTPS or localhost.');
+ if(!lm)toast('The AI model is still loading; the camera will start anyway.');
+ stopCam(true);
+ try{const v={width:{ideal:1280},height:{ideal:720}};deviceId?v.deviceId={exact:deviceId}:v.facingMode=facing;
+  stream=await navigator.mediaDevices.getUserMedia({video:v,audio:false});
+ }catch(e){const n=e.name;fail(n==='NotAllowedError'?'Camera permission was denied. Allow it in your browser site settings and try again':n==='NotFoundError'?'No camera found on this device':n==='NotReadableError'?'The camera is in use by another app':'Could not start the camera',e);checkPerm();return}
+ vid.srcObject=stream;try{await vid.play()}catch(e){fail('Video playback failed',e)}
+ const t=stream.getVideoTracks()[0],st=t.getSettings();facing=st.facingMode||facing;mirrored=S.mirror&&facing!=='environment';vid.classList.toggle('mir',mirrored);
+ devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');devIdx=devs.findIndex(d=>d.deviceId===st.deviceId);
+ $('#stage').style.aspectRatio=(st.width||4)+'/'+(st.height||3);$('#resTxt').textContent=`${st.width}×${st.height} @ ${Math.round(st.frameRate||0)}fps`;
+ log('ok',`Camera started: ${t.label||'camera'} ${st.width}×${st.height}`);t.onended=()=>{toast('Camera disconnected','error');stopCam()};
+ running=true;tStart=performance.now();camUI(true);checkPerm();toast('Camera started. Frames stay on your device.','ok')}
+function stopCam(quiet){if(running){sesMs+=performance.now()-tStart;running=false}
+ stream?.getTracks().forEach(t=>t.stop());stream=null;vid.srcObject=null;ctx.clearRect(0,0,cv.width,cv.height);camUI(false);states=[];showFaces([]);if(!quiet)log('info','Camera stopped')}
+async function switchCam(){if(devs.length>1){devIdx=(devIdx+1)%devs.length;await startCam(devs[devIdx].deviceId)}else{facing=facing==='user'?'environment':'user';await startCam()}}
+$('#bStart').onclick=()=>startCam();$('#bStop').onclick=()=>stopCam();$('#bSwitch').onclick=switchCam;
+async function checkPerm(){let s='unknown (not reported by this browser)';try{s=(await navigator.permissions.query({name:'camera'})).state}catch{}$('#permTxt').textContent=s+(isSecureContext?'':' · insecure page: camera blocked')}
+/* ---------- detection loop ---------- */
+let states=[],frames=0,fps=0,lat=0,lastFrame=0,lastVT=-1,lastSample=0,totalDet=0,frWith=0,peak=0;
+function loop(){requestAnimationFrame(loop);
+ if(!running||!lm||vid.readyState<2)return;const now=performance.now();if(now-lastFrame<1000/S.fps-2||vid.currentTime===lastVT)return;lastVT=vid.currentTime;lastFrame=now;
+ let r;const t0=performance.now();try{r=detect(vid)}catch(e){fail('Detection error',e);return}
+ lat=lat*.8+(performance.now()-t0)*.2;frames++;process(r,now)}
+function process(r,now){if(cv.width!==vid.videoWidth){cv.width=vid.videoWidth;cv.height=vid.videoHeight}
+ ctx.clearRect(0,0,cv.width,cv.height);const L=r.faceLandmarks||[],B=r.faceBlendshapes||[];states.length=L.length;const out=[];
+ if(L.length){frWith++;totalDet+=L.length;peak=Math.max(peak,L.length)}
+ L.forEach((pts,i)=>{const b={};B[i]?.categories.forEach(c=>b[c.categoryName]=c.score);const raw=score(b),p=states[i];
+  states[i]=p?Object.fromEntries(Object.keys(raw).map(k=>[k,p[k]*S.smooth+raw[k]*(1-S.smooth)])):raw;
+  const pc=toPct(states[i]),m=top(pc);out.push({pc,m,conf:pc[m]});draw(pts,i,m,pc[m])});
+ showFaces(out);if(out.length&&now-lastSample>S.interval*1000){lastSample=now;sample(out)}}
+function draw(pts,i,m,c){const P=mirrored?pts.map(p=>({x:1-p.x,y:p.y,z:p.z})):pts,o=S.overlay;if(o==='off')return;
+ if(o==='mesh')du.drawConnectors(P,FaceLandmarker.FACE_LANDMARKS_TESSELATION,{color:'#a855f740',lineWidth:.6});
+ if(o==='mesh'||o==='contour'){du.drawConnectors(P,FaceLandmarker.FACE_LANDMARKS_CONTOURS,{color:'#22d3ee',lineWidth:1.6});
+  du.drawConnectors(P,FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,{color:'#a855f7',lineWidth:2});du.drawConnectors(P,FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,{color:'#a855f7',lineWidth:2})}
+ let x0=1,y0=1,x1=0,y1=0;P.forEach(p=>{x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y)});
+ const W=cv.width,H=cv.height,x=x0*W-8,y=y0*H-8,w=(x1-x0)*W+16,h=(y1-y0)*H+16,k=COL[m],q=Math.max(14,W/48);
+ ctx.strokeStyle=k;ctx.lineWidth=2;ctx.shadowColor=k;ctx.shadowBlur=10;ctx.beginPath();ctx.roundRect(x,y,w,h,12);ctx.stroke();ctx.shadowBlur=0;
+ const t=`F${i+1} ${LBL[m]} ${Math.round(c)}%`;ctx.font=`500 ${q}px 'Space Grotesk',sans-serif`;const tw=ctx.measureText(t).width+14;
+ ctx.fillStyle=k;ctx.beginPath();ctx.roundRect(x,Math.max(0,y-q-10),tw,q+8,6);ctx.fill();ctx.fillStyle='#0a0816';ctx.fillText(t,x+7,Math.max(0,y-q-10)+q)}
+function showFaces(f){$('#faceN').textContent=f.length+(f.length===1?' face':' faces');const h=$('#faces');
+ if(!f.length){$('#mood').textContent=running?'No face detected':'Waiting for a face';$('#mood').style.color='var(--mu)';$('#conf').textContent='Expression-based estimate';M.forEach(m=>{$('#b-'+m[0]).style.width='0';$('#p-'+m[0]).textContent='0%'});h.innerHTML='';return}
+ const a=f[0];$('#mood').textContent=LBL[a.m];$('#mood').style.color=COL[a.m];$('#conf').textContent=`Face looks ${LBL[a.m].toLowerCase()} · ${a.conf.toFixed(0)}% of expression score`;
+ M.forEach(m=>{const v=a.pc[m[0]];$('#b-'+m[0]).style.width=v+'%';$('#p-'+m[0]).textContent=v.toFixed(0)+'%'});
+ h.innerHTML=f.map((x,i)=>`<span class="pill" style="border-color:${COL[x.m]}66">Face ${i+1}: ${LBL[x.m]} ${x.conf.toFixed(0)}%</span>`).join('')}
+/* ---------- sampling / history / analytics ---------- */
+function sample(f){const t=Date.now();f.forEach((x,i)=>{hist.push({t,f:i+1,m:x.m,c:+x.conf.toFixed(1),n:f.length});cnt[x.m]++;nSamp++;for(const k in x.pc)sum[k]+=x.pc[k]/1});
+ if(hist.length>2000)hist.splice(0,hist.length-2000);if(S.persist)sv('ml_hist',hist.slice(-500));
+ const L=chLine;L.data.labels.push(new Date(t).toLocaleTimeString([], {minute:'2-digit',second:'2-digit'}));M.forEach((m,j)=>L.data.datasets[j].data.push(+f[0].pc[m[0]].toFixed(1)));
+ if(L.data.labels.length>60){L.data.labels.shift();L.data.datasets.forEach(d=>d.data.shift())}refreshAnalytics();renderHist()}
+function refreshAnalytics(){chDist.data.datasets[0].data=M.map(m=>cnt[m[0]]);chDist.update();chLine.update('none');
+ M.forEach(m=>{const v=nSamp?sum[m[0]]/nSamp:0;$('#a-'+m[0]).style.width=v+'%';$('#ap-'+m[0]).textContent=v.toFixed(0)+'%'});
+ const d=top(cnt);$('#sDom').textContent=nSamp?LBL[d].replace('-looking',''):'–'}
+function renderHist(){const h=$('#hist');if(!hist.length){h.innerHTML='<div style="color:var(--mu);padding:14px">No samples yet. Start the camera to record the timeline.</div>';return}
+ h.innerHTML=hist.slice(-150).reverse().map(e=>`<div class="row"><span>${new Date(e.t).toLocaleTimeString()}</span><span style="color:${COL[e.m]}">● ${LBL[e.m]}</span><span>${e.c}%</span><span>F${e.f}/${e.n}</span></div>`).join('')}
+$('#bCsv').onclick=()=>{if(!hist.length)return toast('Nothing to export yet');const csv='time,face,faces_in_frame,mood,score_pct\n'+hist.map(e=>`${new Date(e.t).toISOString()},${e.f},${e.n},${LBL[e.m]},${e.c}`).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='moodlens-history.csv';a.click();URL.revokeObjectURL(a.href)};
+function clearHist(){hist=[];M.forEach(m=>{cnt[m[0]]=0;sum[m[0]]=0});nSamp=0;chLine.data.labels=[];chLine.data.datasets.forEach(d=>d.data=[]);if(S.persist)localStorage.removeItem('ml_hist');refreshAnalytics();renderHist()}
+$('#bClrH').onclick=()=>{clearHist();toast('History cleared','ok')};
+function resetSession(){clearHist();sesMs=0;if(running)tStart=performance.now();totalDet=frWith=peak=0;toast('Session reset','ok');log('info','Session reset')}
+$('#bReset').onclick=resetSession;
+$('#bFactory').onclick=()=>{if(!confirm('Reset settings, consent and all stored data?'))return;stopCam();resetSession();['ml_set','ml_hist','ml_consent'].forEach(k=>localStorage.removeItem(k));S={...DEF};applySet();toast('Everything was reset','ok')};
+$('#bRevoke').onclick=()=>{stopCam();localStorage.removeItem('ml_consent');toast('Camera stopped. You will be asked for consent next time.','ok')};
+$('#bWipe').onclick=()=>{stopCam();resetSession();['ml_hist','ml_set','ml_consent'].forEach(k=>localStorage.removeItem(k));toast('Stored data deleted','ok')};
+/* ---------- stats / performance ticker ---------- */
+setInterval(()=>{fps=frames;frames=0;const t=Math.floor((sesMs+(running?performance.now()-tStart:0))/1000);
+ $('#tSes').textContent='Session '+String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+ $('#sFps').textContent=fps;$('#sLat').textContent=lat.toFixed(0);$('#sDet').textContent=totalDet;$('#sFrm').textContent=frWith;$('#sPeak').textContent=peak;
+ $('#perfTxt').textContent=`${fps} fps · ${lat.toFixed(1)} ms`+(performance.memory?` · ${(performance.memory.usedJSHeapSize/1048576).toFixed(0)} MB`:'');
+ const F=chFps;F.data.labels.push('');F.data.datasets[0].data.push(fps);F.data.datasets[1].data.push(+lat.toFixed(1));if(F.data.labels.length>60){F.data.labels.shift();F.data.datasets.forEach(d=>d.data.shift())}F.update('none')},1000);
+/* ---------- tests ---------- */
+const res=(el,items)=>$(el).innerHTML=items.map(([ok,t])=>`<li><span style="color:${ok===true?'var(--ok)':ok===false?'var(--er)':'var(--wa)'}">${ok===true?'✓':ok===false?'✗':'!'}</span><span>${t}</span></li>`).join('');
+$('#bCamT').onclick=async()=>{const it=[];const add=(o,t)=>{it.push([o,t]);res('#camTest',it)};
+ add(isSecureContext,isSecureContext?'Secure context (HTTPS or localhost)':'Page is not secure; browsers block the camera here');
+ add(!!navigator.mediaDevices?.getUserMedia,'Camera API available');if(!navigator.mediaDevices)return;
+ try{const d=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==='videoinput');add(d.length>0,`${d.length} camera${d.length===1?'':'s'} found`)}catch(e){add(false,'Device listing failed: '+e.message)}
+ if(running){const s=stream.getVideoTracks()[0].getSettings();add(true,`Active stream ${s.width}×${s.height} @ ${Math.round(s.frameRate||0)} fps`);return}
+ if(!(await askConsent()))return add(null,'Test skipped: consent not given');
+ try{const s=await navigator.mediaDevices.getUserMedia({video:true}),st=s.getVideoTracks()[0].getSettings();add(true,`Permission granted. Test stream ${st.width}×${st.height}`);s.getTracks().forEach(t=>t.stop());add(true,'Test stream released')}catch(e){add(false,`${e.name}: ${e.message}`)}checkPerm()};
+$('#bModT').onclick=()=>{const it=[];const add=(o,t)=>{it.push([o,t]);res('#modTest',it)};
+ add(!!window.Chart,'Chart.js loaded');add(modelOK,modelOK?'Face Landmarker loaded':'Face Landmarker not loaded');if(!lm)return;
+ try{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#222';x.fillRect(0,0,256,256);const t0=performance.now(),r=detect(c);
+  add(true,`Inference ran in ${(performance.now()-t0).toFixed(0)} ms (blank frame: ${r.faceLandmarks.length} faces, as expected)`)}catch(e){add(false,'Inference failed: '+e.message)}
+ const cases={happy:{mouthSmileLeft:.8,mouthSmileRight:.8,cheekSquintLeft:.4,cheekSquintRight:.4},surprised:{eyeWideLeft:.8,eyeWideRight:.8,browInnerUp:.8,jawOpen:.7,browOuterUpLeft:.6,browOuterUpRight:.6},angry:{browDownLeft:.8,browDownRight:.8,eyeSquintLeft:.5,eyeSquintRight:.5,mouthPressLeft:.5,mouthPressRight:.5},tired:{eyeBlinkLeft:.8,eyeBlinkRight:.8},disgusted:{noseSneerLeft:.7,noseSneerRight:.7,mouthUpperUpLeft:.5,mouthUpperUpRight:.5},sad:{mouthFrownLeft:.7,mouthFrownRight:.7,browInnerUp:.6},neutral:{}};
+ const bad=Object.entries(cases).filter(([k,b])=>top(toPct(score(b)))!==k).map(x=>x[0]);add(!bad.length,bad.length?'Scoring mismatch: '+bad.join(', '):'Mood scoring maps 7 synthetic expressions correctly')};
+$('#bReload').onclick=async()=>{await initModel();if(modelOK)toast('Model reloaded','ok')};
+$('#bClrC').onclick=()=>{$('#cons').innerHTML='';logs=[];errCount=0;$('#errbdg').style.display='none'};
+$('#bCopy').onclick=async()=>{try{await navigator.clipboard.writeText(logs.join('\n'));toast('Log copied','ok')}catch(e){fail('Copy failed',e)}};
+/* ---------- boot ---------- */
+log('info',`MoodLens AI started · secure=${isSecureContext} · ${navigator.userAgent}`);renderHist();refreshAnalytics();checkPerm();camUI(false);
+requestAnimationFrame(loop);
+await initModel();
+$('#load').style.opacity=0;setTimeout(()=>$('#load').remove(),650);
+</script>
+</body>
+</html>

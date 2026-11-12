@@ -1,0 +1,26 @@
+{
+  "name": "moodlens-ai",
+  "version": "1.0.0",
+  "description": "MoodLens AI - local facial expression analysis",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "ai.moodlens.app",
+    "productName": "MoodLens AI",
+    "files": [
+      "main.js",
+      "index.html",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable"
+    }
+  }
+}
